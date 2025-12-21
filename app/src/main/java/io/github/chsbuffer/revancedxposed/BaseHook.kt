@@ -90,7 +90,7 @@ data class Pairs(
 @Suppress("UNCHECKED_CAST")
 @OptIn(ExperimentalSerializationApi::class)
 class SharedPrefCache(app: Application) : DexKitCacheBridge.Cache {
-    val file = File(app.cacheDir.path, BuildConfig.BUILD_TYPE.toSha256())
+    val file = File(app.cacheDir.path, BuildConfig.APPLICATION_ID.toSha256())
 
     val pref = runCatching { ProtoBuf.decodeFromByteArray<Pairs>(file.readBytes()) }.getOrElse {
         Pairs(mutableMapOf())
