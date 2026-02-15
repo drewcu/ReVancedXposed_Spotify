@@ -38,7 +38,46 @@ class MainHook : IXposedHookLoadPackage, IXposedHookZygoteInit {
                 return@inContext
             }
 
+            // Existing Spotify hooks from the module
             hooksByPackage[lpparam.packageName]?.invoke()?.Hook()
+
+            /* 
+               PREEMPTIVE STRING HOOK
+               Instead of replacing text after it's built, we intercept the string search 
+               entirely. This is the closest LSPosed can get to "deleting" the string 
+               from classes4.dex without causing background lag.
+            */
+            XposedHelpers.findAndHookMethod(
+                "java.lang.String",
+                lpparam.classLoader,
+                "contains",
+                CharSequence::class.java,
+                object : XC_MethodHook() {
+                    override fun beforeHookedMethod(param: MethodHookParam) {
+                        val query = param.args[0]?.toString() ?: return
+                        // Catching both "events" and "public/events" under one umbrella
+                        if (query.contains("gabo-receiver-service/v3/")) {
+                            param.result = false // Tells Spotify "No, this string does not exist"
+                        }
+                    }
+                }
+            )
+
+            // Optional: Block the construction of the URL builder specifically
+            XposedHelpers.findAndHookMethod(
+                "java.lang.StringBuilder",
+                lpparam.classLoader,
+                "append",
+                String::class.java,
+                object : XC_MethodHook() {
+                    override fun beforeHookedMethod(param: MethodHookParam) {
+                        val text = param.args[0] as? String ?: return
+                        if (text.contains("gabo-receiver-service/v3/")) {
+                            param.args[0] = "" // Nullifies the append before it happens
+                        }
+                    }
+                }
+            )
         }
     }
 
