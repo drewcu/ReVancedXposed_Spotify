@@ -39,6 +39,27 @@ class MainHook : IXposedHookLoadPackage, IXposedHookZygoteInit {
             }
 
             hooksByPackage[lpparam.packageName]?.invoke()?.Hook()
+
+            // Custom Hook for Gabo Receiver Events
+            XposedHelpers.findAndHookMethod(
+                "java.lang.StringBuilder",
+                lpparam.classLoader,
+                "toString",
+                object : XC_MethodHook() {
+                    override fun afterHookedMethod(param: MethodHookParam) {
+                        var result = param.result as? String ?: return
+                        
+                        if (result.contains("gabo-receiver-service/v3/events") || 
+                            result.contains("gabo-receiver-service/v3/public/events")) {
+                            
+                            result = result.replace("gabo-receiver-service/v3/events", "")
+                                           .replace("gabo-receiver-service/v3/public/events", "")
+                            
+                            param.result = result
+                        }
+                    }
+                }
+            )
         }
     }
 
